@@ -25,7 +25,7 @@ module freq_ctrl(
 	input				clk_50m		,
     input				rst_n   	,
 	input	[1:0]		key         ,
-    output	[9:0]		da_data		,
+    output	signed [9:0]da_data		,
 	output	[5:0]		freq			//Êä³öÕıÏÒ²¨ÆµÂÊ£¬freq*100
     );
 	
@@ -52,12 +52,12 @@ always @(posedge clk_50m or negedge rst_n)
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)
 		freq_ctrl_t1 <= 6'd1;
-	else if(~key_value[0])
+	else if(~key[0])
 		if(freq_ctrl_t1 == 1)
 			freq_ctrl_t1 <= 30;
 		else
 			freq_ctrl_t1 <= freq_ctrl_t1 - 1'd1;
-	else if(~key_value[1])
+	else if(~key[1])
 		if(freq_ctrl_t1 == 30)
 			freq_ctrl_t1 <= 1;
 		else
