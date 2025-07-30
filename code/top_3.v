@@ -15,6 +15,7 @@ module top(
 wire clk_50m;
 wire clk_32m;
 wire clk_40_96m;
+wire clk_100m;
 wire locked1,locked2;
 wire rst_n;
 assign rst_n = sys_rst_n & locked1 & locked2;
@@ -59,6 +60,8 @@ rom_30x11b u_rom_30x11b (
   .douta(rd_data)  // output wire [10 : 0] douta
 );
 
+
+
 // 按键防抖模块
 key_debounce u_key_debounce(
     .clk(clk_50m),
@@ -80,14 +83,21 @@ value_ctrl u_value_ctrl(
     .rst_n(rst_n),
     .key1(key_value[2]),
     .key2(),
-    .out_value(out_value)
+    .out_value(out_value)  //[4:0]
 );
 
+wire signed [5:0]out_value_t;
 wire signed [25:0]in_value_t;
 wire signed [9:0]da_data_t;
+wire signed [11:0]  rd_data_t;
+wire signed [10:0]da_data_sign;
 
-assign in_value_t = out_value * rd_data * da_data_t;
-assign da_data = ((in_value_t)>>>10) /10 + 512;  //需要输入的电压峰峰值 单位:v
+
+assign rd_data_t = {1'd0,rd_data};
+assign out_value_t = {1'd0,out_value};
+assign in_value_t = out_value_t * rd_data_t * da_data_t/100 ;
+assign da_data_sign = (in_value_t>>>10)+512;  //需要输入的电压峰峰值 单位:v
+assign da_data = da_data_sign[9:0];
 
 
 seg_led u_seg_led(
