@@ -6,7 +6,7 @@ module ifft_tb;
 reg sys_clk;        // 系统时钟
 reg sys_rst_n;      // 系统复位
 reg [8:0] key;      // 按键输入 
-reg fft_clk;        // FFT时钟
+reg fft_clk;        // FFT时钟，163840Hz，
 
 // AD接口
 reg [9:0] ad_data;  // ADC数据输入(10位)
@@ -28,17 +28,18 @@ ifft u_ifft (
     .da_data(da_data)
 );
 
-// 生成系统时钟（假设100MHz）
+// 生成系统时钟（假设50MHz）
 initial begin
     sys_clk = 0;
-    forever #5 sys_clk = ~sys_clk;  // 10ns周期
+    forever #10 sys_clk = ~sys_clk;  // 20ns周期
 end
 
-// 生成FFT时钟（假设50MHz）
+// 生成FFT时钟（假设163840Hz）
 initial begin
     fft_clk = 0;
-    forever #10 fft_clk = ~fft_clk;  // 20ns周期,163840Hz
+    forever #305 fft_clk = ~fft_clk;  // 610ns周期,163840Hz
 end
+
 
 // 读取文件中的数据
 reg [9:0] mem [0:4095];  // 存储输入数据
@@ -58,7 +59,7 @@ initial begin
     sys_rst_n = 1;
 
     // 读取数据文件
-    $readmemb("J:/vivado/project/ti/2025G/code/sim/sine_wave_5kHz_unsigned.txt", mem);
+    $readmemb("J:/vivado/project/ti/2025G/code/sim/sampled_data_binary.txt", mem);
     file_loaded = 1;     // 文件加载完成标志
     
     // 等待文件加载完成

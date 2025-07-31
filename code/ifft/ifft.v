@@ -65,6 +65,21 @@ xfft_0 D2_xfft (
   .event_data_out_channel_halt(event_data_out_channel_halt)          
   );
 
+wire [15:0] data_modulus;
+wire data_valid;
+data_modulus u_data_modulus(
+	.clk(sys_clk),
+	.rst_n(sys_rst_n),
+	//.key(key_value[0]),                       //键控重置，就是题目里的启动键，不是复�?
+	//FFT ST接口 
+    .source_real(fft_real),   //实部 有符号数 
+    .source_imag(fft_img),   //虚部 有符号数 
+	.source_eop(),
+    .source_valid(1'b1),  //输出有效信号，FFT变换完成后，此信号置�? 
+	.data_modulus(data_modulus),  // 取模结果
+	.data_eop(),      // 结果帧结�?
+	.data_valid(data_valid) 
+);
 //calculate. ip
 
 wire m_axis_dout_tvalid;
