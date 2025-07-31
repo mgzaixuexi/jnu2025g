@@ -135,14 +135,6 @@ lcd_key_ctrl u_lcd_key_ctrl(
 );
 
 
-// rom_ctrl u_rom_ctrl(
-//     .clk(clk_50m),
-//     .rst_n(rst_n),
-//     .key1(key_value[0]),
-//     .key2(key_value[1]),
-//     .rd_addr(rd_addr)
-// );
-
 value_ctrl u_value_ctrl(
     .clk(clk_50m),
     .rst_n(rst_n),
