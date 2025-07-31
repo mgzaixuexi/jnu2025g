@@ -39,7 +39,8 @@ module top_lcd_touch(
     output           lcd_bl     ,  //LCD 背光控制信号
     output           lcd_clk    ,  //LCD 像素时钟
     output           lcd_rst_n  ,  //LCD 复位
-    inout    [23:0]  lcd_rgb       //LCD RGB颜色数据
+    inout    [23:0]  lcd_rgb    ,   //LCD RGB颜色数据
+    output   [8:0]   data_out
 );
 
 //wire define
@@ -87,7 +88,8 @@ lcd_rgb_char  u_lcd_rgb_char
    .lcd_rgb         (lcd_rgb  ),
    .lcd_bl          (lcd_bl   ),
    .lcd_rst_n       (lcd_rst_n),
-   .lcd_clk         (lcd_clk  )
+   .lcd_clk         (lcd_clk  ),
+   .data_out        (data_out)
 );
 
 

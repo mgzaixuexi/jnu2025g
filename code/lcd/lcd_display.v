@@ -14,7 +14,7 @@ module lcd_display(
     input      [10:0] pixel_xpos,               //像素点横坐标
     input      [10:0] pixel_ypos,               //像素点纵坐标
     output reg [23:0] pixel_data,               //像素点数据,
-    output     [31:0] data_out
+    output     [8:0] data_out
 );
 
 //parameter define
@@ -115,6 +115,7 @@ wire [10:0] touch_y = data_in[10:0];   // 提取触摸点Y坐标（11位）
 // 检测触摸点是否在按钮区域内
 wire button1_active = (touch_x >= BUTTON1_X) && (touch_x < BUTTON1_X + BUTTON_WIDTH) &&
                       (touch_y >= BUTTON1_Y) && (touch_y < BUTTON1_Y + BUTTON_HEIGHT);
+
 wire button2_active = (touch_x >= BUTTON2_X) && (touch_x < BUTTON2_X + BUTTON_WIDTH) &&
                       (touch_y >= BUTTON2_Y) && (touch_y < BUTTON2_Y + BUTTON_HEIGHT);
 wire button3_active = (touch_x >= BUTTON3_X) && (touch_x < BUTTON3_X + BUTTON_WIDTH) &&
@@ -153,7 +154,7 @@ wire new_button2_active = (touch_x >= NEW_BUTTON2_X) && (touch_x < NEW_BUTTON2_X
 wire new_button3_active = (touch_x >= NEW_BUTTON3_X) && (touch_x < NEW_BUTTON3_X + NEW_BUTTON_WIDTH) &&
                          (touch_y >= NEW_BUTTON3_Y) && (touch_y < NEW_BUTTON3_Y + NEW_BUTTON_HEIGHT);
 
-
+assign data_out = {button1_active,button2_active,button3_active,y1_button_active,y2_button_active,y3_button_active,new_button1_active,new_button2_active,new_button3_active};
 
 //reg define
 reg  [511:0]  char  [15:0] ;                //字符数组

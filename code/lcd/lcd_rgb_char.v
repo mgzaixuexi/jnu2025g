@@ -34,9 +34,10 @@ module  lcd_rgb_char(
     output             lcd_bl    , //LCD 背光控制信号
     output             lcd_clk   , //LCD 采样时钟
     output             lcd_rst_n,  //LCD复位
-    output     [15:0]  lcd_id
+    output     [15:0]  lcd_id,
+    output    [8:0]    data_out
 );
-wire [31:0] data_out;
+
 //wire define
 wire  [10:0]  pixel_xpos_w ;
 wire  [10:0]  pixel_ypos_w ;
