@@ -44,18 +44,31 @@ reg [1:0] 	state;
 reg [1:0] 	next_state;
 reg 		flag;
 
+reg			key0_d0;
+reg			key0_d1;
+reg			key1_d0;
+reg			key1_d1;
+
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)begin
 		learn_en_d0 <= 0;
 	    learn_en_d1 <= 0;
 		next_freq_d0 <= 0;
 	    next_freq_d1 <= 0;
+		key0_d0	<= 1;
+		key0_d1 <= 1;
+		key1_d0 <= 1;
+		key1_d1 <= 1;
 		end
 	else begin
 		learn_en_d0 <= learn_en;
 	    learn_en_d1 <= learn_en_d0;
 		next_freq_d0 <= next_freq;
 		next_freq_d1 <= next_freq_d0;
+		key0_d0	<= key[0];	
+		key0_d1 <= key0_d0;
+		key1_d0 <= key[1];
+		key1_d1 <= key1_d0;
 		end
 		
 dds_compiler_0 u_dds_compiler_0 (
@@ -101,7 +114,7 @@ always @(posedge clk_50m or negedge rst_n)
 		case(state)
 			norm:	begin
 					flag <= 0;
-					if(~key[0])
+					if(~key0_d0 & key0_d1)
 			        	if(freq_ctrl_t1 == 1)
 			        		freq_ctrl_t1 <= 30;
 			        	else if(freq_ctrl_t1 > 30)
@@ -113,7 +126,7 @@ always @(posedge clk_50m or negedge rst_n)
 						    endcase
 						else 
 			        		freq_ctrl_t1 <= freq_ctrl_t1 - 1'd1;
-			        else if(~key[1])
+			        else if(~key1_d0 & key1_d1)
 			        	if(freq_ctrl_t1 >= 30)
 							case(freq_ctrl_t1)
 								16'd30: 	freq_ctrl_t1 <= 16'd15000;
@@ -124,22 +137,25 @@ always @(posedge clk_50m or negedge rst_n)
 							endcase
 			        	else
 			        		freq_ctrl_t1 <= freq_ctrl_t1 + 1'd1;
-			        else 
-			        	freq_ctrl_t1 <= freq_ctrl_t1;
-					if(~learn_en_d1 & learn_en_d0)
+					if(learn_en)begin
 						freq_ctrl_t0 <= freq_ctrl_t1;
+						freq_ctrl_t1 <= 1000;
+						end
+					else 
+						freq_ctrl_t0 <= freq_ctrl_t0;
 					end
 			learn:	begin
-					if(~flag) begin
+/* 					if(~flag) begin
 						flag <= 1;
 						freq_ctrl_t1 <= 10;
 						end
 					else 
-						flag <= flag;
+						flag <= flag; */
 					if(~next_freq_d1 & next_freq_d0)
 						freq_ctrl_t1 <= freq_ctrl_t1 + 16'd2;
-					if(~learn_en_d0 & learn_en_d1)
+					if(~learn_en)
 						freq_ctrl_t1 <= freq_ctrl_t0;
+					freq_ctrl_t0 <= freq_ctrl_t0;
 					end
 			default:begin
 					flag <= 0;

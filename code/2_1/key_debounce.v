@@ -27,7 +27,7 @@ module key_debounce(
     output reg [2:0] key_value
     );
     
-parameter waittime = 1_000_000;
+parameter waittime = 1_0;
 
 reg [19:0] cnt;
 reg flag;
@@ -38,11 +38,9 @@ always@ (posedge clk or negedge rst_n)
     flag<=0;
     end
     else if(~key)
-        if(flag)
-        cnt<=0;
-        else if(cnt==waittime-1)begin
+		if(cnt==waittime-1)begin
         flag<=1;
-		cnt<=0;
+		cnt<=cnt;
 		end
         else cnt<=cnt+ 1'b1;
     else begin
@@ -53,7 +51,7 @@ always@ (posedge clk or negedge rst_n)
 always@ (posedge clk or negedge rst_n)
     if(~rst_n)
     key_value<=3'b111;
-    else if(cnt==waittime-1)
+    else if(flag)
     key_value<=key;
     else key_value<=3'b111;
     

@@ -30,6 +30,8 @@ module top(
 	input          ad_otr,        // ADC输入电压超过量程标志
 	output		   ad_clk,
 	
+	output reg [3:0]   led,
+	
 	// DA接口
 	output         da_clk,        // DAC驱动时钟
 	output [9:0]   da_data,       // DAC数据输出(10位)
@@ -186,6 +188,7 @@ wire [15:0]	rd_real	   		;
 wire [15:0]	rd_imag	   		;
 wire [11:0]	real_addr	   	;
 wire [11:0]	imag_addr	   	;
+wire [15:0]	modulus_data_t1;	
 
 learn_ctrl u_learn_ctrl(
 	.clk_50m		(clk_50m),
@@ -196,7 +199,7 @@ learn_ctrl u_learn_ctrl(
     .fft_imag	    (fft_m_data_tdata[31:16]),
     .source_valid   (fft_m_data_tvalid),
     .freq		    (freq>>1),
-    .fft_index	    (fft_index),
+    //.fft_index	    (fft_index),
     .blk_exp		(blk_exp),
     .learn_en	    (learn_en),
     .next_freq	    (next_freq),
@@ -206,7 +209,8 @@ learn_ctrl u_learn_ctrl(
     .wr_imag		(wr_imag),
     .wr_addr		(wr_addr),
     .filter_type	(filter_type),
-    .learn_done	    (learn_done)
+    .learn_done	    (learn_done),
+	.modulus_data_t1(modulus_data_t1)
 );
 
 /* ram_2800x16 ram_real (
@@ -234,10 +238,22 @@ seg_led u_seg_led(
     .sys_clk(clk_50m),
     .sys_rst_n(rst_n),
 	.num1(filter_type),
-	.num2(freq),
+	.num2(modulus_data_t1),
 	.learn_done(learn_done),
     .seg_sel(seg_sel),
     .seg_led(seg_led)
 );
+
+always @(posedge clk_50m or negedge rst_n)
+	if(~rst_n)
+		led <= 0;
+	else 
+		case(filter_type)
+			3'd1:	led <= 4'b0001;
+			3'd2:	led <= 4'b0010;
+			3'd3:	led <= 4'b0100;
+			3'd4:	led <= 4'b1000;
+			default:led <= 4'b0000;
+		endcase
 
 endmodule
