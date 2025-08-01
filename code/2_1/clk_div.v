@@ -28,12 +28,13 @@ module clk_div(
     );
 	
 wire clk_16_384m;
-wire clk_16_384m_t;
+reg clk_16_384m_t;
 
 reg clk_1_6384m_t;
 reg [2:0] clk_cnt;
 
-assign clk_16_384m_t = clk_8_192m + clk_8_192m_90deg;
+always @(*)
+	clk_16_384m_t = clk_8_192m_90deg + clk_8_192m;
 
 BUFG BUFG_inst1 (
       .O(clk_16_384m), // 1-bit output: Clock output

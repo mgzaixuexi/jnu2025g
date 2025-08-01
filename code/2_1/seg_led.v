@@ -30,8 +30,8 @@ module seg_led(
 	
 wire [3:0]	data1;
 wire [3:0]	data2;
-
-reg [3:0] data3;		
+wire [3:0] data3;	
+wire [3:0] data4;		
 	
 reg [15:0] counter;
 reg	learn_done_d0;
@@ -42,17 +42,19 @@ parameter F=50_000;
 
 assign data1 = num2 % 10;
 assign data2 = num2 /10 % 10;
+assign data3 = num2 /100 % 10;
+assign data4 = num2 /1000 % 10;
 
-always@(posedge sys_clk or negedge sys_rst_n)
+/* always@(posedge sys_clk or negedge sys_rst_n)
     if(!sys_rst_n)
 		data3 <= 0;
 	else 
 		case(num2)
-			16'd1500:	data3 <= 4'd1;
-			16'd3000:	data3 <= 4'd2;
-			16'd4500:	data3 <= 4'd3;
+			16'd15000:	data3 <= 4'd1;
+			16'd30000:	data3 <= 4'd2;
+			16'd45000:	data3 <= 4'd3;
 			default:	data3 <= 0;
-		endcase
+		endcase */
 
 always@(posedge sys_clk or negedge sys_rst_n) begin
     if(!sys_rst_n) counter<=0;
@@ -89,11 +91,11 @@ end
 always@(posedge sys_clk or negedge sys_rst_n) begin
     if(!sys_rst_n) seg_led<=8'b0;
 	 else case(seg_sel)
-	 5'b11_110: seg_led<=(~led(num1));
+	 5'b11_110: seg_led<=(~led(data4));
 	 5'b11_101:	seg_led<=(~led(data3));
 	 5'b11_011:	seg_led<=(~led(data2));
 	 5'b10_111:	seg_led<=(~led(data1));
-	 5'b01_111: seg_led<=(~led({3'b0,learn_done_r}));
+	 5'b01_111: seg_led<=(~led(num1));
 	 default: seg_led<=8'b0; 
 	 endcase
 end

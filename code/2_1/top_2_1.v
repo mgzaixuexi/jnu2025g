@@ -99,7 +99,7 @@ freq_ctrl u_freq_ctrl(
 	.learn_en(learn_en),
 	.next_freq(next_freq),
     .da_data(da_data_t),
-	.freq(freq)			//输出正弦波频率，freq*100
+	.freq_ctrl_t1(freq)			//输出正弦波频率，freq*100
     );
 
 clk_div u_clk_div(
@@ -111,7 +111,6 @@ clk_div u_clk_div(
 
 wire fft_axis_config_tready;
 wire fft_axis_data_tready;
-wire fft_axis_data_tlast;
 wire [31:0] fft_m_data_tdata;
 wire fft_m_data_tvalid;
 wire [23:0] fft_axis_data_tuser;
@@ -131,7 +130,7 @@ xfft_0 u_xfft_0 (
   .s_axis_data_tdata({22'b0,ad_data[9:0]}),                      // input wire [31 : 0] s_axis_data_tdata
   .s_axis_data_tvalid(1'b1),                    // input wire s_axis_data_tvalid
   .s_axis_data_tready(fft_axis_data_tready),                    // output wire s_axis_data_tready
-  .s_axis_data_tlast(fft_axis_data_tlast),                      // input wire s_axis_data_tlast
+  .s_axis_data_tlast(0),                      // input wire s_axis_data_tlast
   
   .m_axis_data_tdata(fft_m_data_tdata),                      // output wire [31 : 0] m_axis_data_tdata
   .m_axis_data_tuser(fft_axis_data_tuser),                      // output wire [23 : 0] m_axis_data_tuser
@@ -192,7 +191,7 @@ learn_ctrl u_learn_ctrl(
 	.clk_50m		(clk_50m),
 	.clk_1_6384m	(clk_1_6384m),
     .rst_n   	    (rst_n),
-    .key            (key_value),
+    .key            (key_value[2]),
     .fft_real	    (fft_m_data_tdata[15:0]),
     .fft_imag	    (fft_m_data_tdata[31:16]),
     .source_valid   (fft_m_data_tvalid),

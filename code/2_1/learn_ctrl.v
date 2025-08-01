@@ -47,7 +47,7 @@ localparam	setup	=	4'b0010;
 localparam	delay	=	4'b0100;	
 localparam	write	=	4'b1000;
 
-parameter index_max 	= 2751;	
+//parameter index_max 	= 16'd2751;	
 parameter delay_value	= 50_000 * 3 - 3;
 parameter blk_exp_norm	= 8;
 parameter compare_num	= 500;
@@ -57,6 +57,7 @@ reg	[3:0]	next_state;
 reg	[4:0]	flag;
 reg [3:0]	move_point;
 reg	[17:0]	delay_cnt;
+reg [15:0] 	index_max_reg;
 reg signed [31:0] source_data;
 
 reg key_d0;
@@ -67,9 +68,16 @@ reg modulus_valid_d1;
 wire start;
 wire modulus_valid;
 wire [11:0] modulus_index;
+wire [15:0] data_modulus;
 
 assign start = key_d0 & ~key_d1;
 assign modulus_index = wr_addr - 1'b1;
+
+always @(posedge clk_50m or negedge rst_n)
+	if(~rst_n)
+		index_max_reg <= 16'd2751;
+	else 
+		index_max_reg <= 16'd2751;
 
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)
@@ -95,8 +103,8 @@ always @(posedge clk_50m or negedge rst_n)
 		
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)begin
-		key_d0 <= 0;
-		key_d1 <= 0;
+		key_d0 <= 1;
+		key_d1 <= 1;
 		modulus_valid_d0 <= 0;
 		modulus_valid_d1 <= 0;
 		end
@@ -107,7 +115,7 @@ always @(posedge clk_50m or negedge rst_n)
 		modulus_valid_d1 <= modulus_valid_d0;
 		end
 	
-always @(posedge clk_1_6384m or negedge rst_n)
+always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)
 		learn_en <= 0;
 	else if(state != idle)
@@ -128,7 +136,7 @@ always @(*) begin
 					next_state = setup;
 				else 
 					next_state = idle;
-		setup:	if(freq >= index_max)
+		setup:	if(freq >= index_max_reg)
 					next_state = idle;
 				else if(flag[0])
 					next_state = delay;
@@ -144,9 +152,9 @@ always @(*) begin
 		        	next_state = write;
 		default:next_state = idle;
 	endcase
-	end
+end
 
-always @(posedge clk_1_6384m or negedge  rst_n)
+always @(posedge clk_50m or negedge  rst_n)
 	if(~rst_n)begin
 		next_freq	<= 0;
 		fft_valid	<= 0;
@@ -175,8 +183,15 @@ always @(posedge clk_1_6384m or negedge  rst_n)
 					fft_valid <= 0;
 					wr_en <= 0;
 					flag <= {flag[3:0],flag[4]};
+					wr_real <= wr_real;
+					wr_imag <= wr_imag;
             		end
             delay:	begin
+					learn_done <= 0;
+					wr_en <= 0;
+					next_freq <= 1;
+					wr_real <= wr_real;
+					wr_imag <= wr_imag;
 					if(delay_cnt >= delay_value)begin
 						fft_valid <= 1;
 						flag <= {flag[3:0],flag[4]};
@@ -187,7 +202,9 @@ always @(posedge clk_1_6384m or negedge  rst_n)
 						end
             		end
             write:	begin
+					fft_valid <= 1;
 					next_freq <= 0;
+					learn_done <= 0;
 					if(fft_index  == freq)begin
 						wr_en <= 1;
 						wr_real <= (fft_real >>> move_point);
@@ -216,13 +233,13 @@ always @(posedge clk_1_6384m or negedge  rst_n)
 			        wr_imag		<= 0;
 			        wr_addr		<= 0;
             		learn_done	<= 0;
-					flag		<= 4'b1000;
+					flag		<= 5'b10000;
             		end
 		endcase
 
 
 		
-always @(posedge clk_1_6384m or negedge rst_n) 
+always @(posedge clk_50m or negedge rst_n) 
     if (!rst_n) 
 		source_data <= 0;
 	else if(flag[2])
@@ -231,7 +248,7 @@ always @(posedge clk_1_6384m or negedge rst_n)
 		source_data <= source_data;
 		
 cordic_0 u_cordic_0 (
-  .aclk(clk_1_6384m),                                        // input wire aclk
+  .aclk(clk_50m),                                        // input wire aclk
   .s_axis_cartesian_tvalid(flag[3]),  // input wire s_axis_cartesian_tvalid
   .s_axis_cartesian_tdata(source_data),    // input wire [31 : 0] s_axis_cartesian_tdata
   .m_axis_dout_tvalid(modulus_valid),            // output wire m_axis_dout_tvalid
@@ -256,6 +273,10 @@ always @(posedge clk_50m or negedge rst_n)
 	else if(~modulus_valid_d1 & modulus_valid_d0)
 		if(~modulus_index)begin
 			modulus_data_t <= data_modulus;
+			rising_edge		<= rising_edge	   ;
+			downing_edge	<= downing_edge    ;
+			rise_index		<= rise_index	   ;
+			down_index		<= down_index	   ;
 			end
 		else if(data_modulus > modulus_data_t)
 			if((data_modulus - modulus_data_t) >= compare_num)begin
@@ -309,7 +330,7 @@ always @(posedge clk_50m or negedge rst_n)
 		else if(rising_edge)
 			filter_type <= 3'd1;
 		else 
-			filter_type <= 0;
+			filter_type <= 3'd6;
 	else 
 		filter_type <= filter_type;
 			

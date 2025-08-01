@@ -28,14 +28,13 @@ module freq_ctrl(
 	input					learn_en	,
 	input					next_freq	,
     output	signed [9:0]	da_data		,
-	output	[15:0]			freq			//输出正弦波频率，freq*100
+	output	reg	   [15:0]	freq_ctrl_t1					//输出正弦波频率，freq*100
     );
 	
 localparam norm 	= 2'b01;
 localparam learn 	= 2'b10;
 
 reg [15:0] 	freq_ctrl_t0;	
-reg [15:0] 	freq_ctrl_t1;
 reg [15:0] 	freq_ctrl_t2;
 reg 		learn_en_d0;
 reg			learn_en_d1;
@@ -44,8 +43,6 @@ reg			next_freq_d1;
 reg [1:0] 	state;
 reg [1:0] 	next_state;
 reg 		flag;
-	
-assign freq = freq_ctrl_t1;
 
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)begin
@@ -77,11 +74,11 @@ always @(posedge clk_50m or negedge rst_n)
 		
 always @(*)
 	case(state)	
-		norm:	if(~learn_en_d1 & learn_en_d0)
+		norm:	if(learn_en)
 					next_state = learn;
 				else 
 					next_state = norm;
-		learn:	if(~learn_en_d0 & learn_en_d1)
+		learn:	if(~learn_en)
 					next_state = norm;
 				else 
 					next_state = learn;
@@ -109,20 +106,20 @@ always @(posedge clk_50m or negedge rst_n)
 			        		freq_ctrl_t1 <= 30;
 			        	else if(freq_ctrl_t1 > 30)
 							case(freq_ctrl_t1)
-								16'd1500:	freq_ctrl_t1 <= 16'd30;
-								16'd3000:	freq_ctrl_t1 <= 16'd1500;
-						    	16'd4500:	freq_ctrl_t1 <= 16'd3000;
-						    	default: freq_ctrl_t1 <= 16'd4500;
+								16'd15000:	freq_ctrl_t1 <= 16'd30;
+								16'd30000:	freq_ctrl_t1 <= 16'd15000;
+						    	16'd45000:	freq_ctrl_t1 <= 16'd30000;
+						    	default: freq_ctrl_t1 <= 16'd45000;
 						    endcase
 						else 
 			        		freq_ctrl_t1 <= freq_ctrl_t1 - 1'd1;
 			        else if(~key[1])
 			        	if(freq_ctrl_t1 >= 30)
 							case(freq_ctrl_t1)
-								16'd30: 	freq_ctrl_t1 <= 16'd1500;
-								16'd1500:	freq_ctrl_t1 <= 16'd3000;
-								16'd3000:	freq_ctrl_t1 <= 16'd4500;
-								16'd4500:	freq_ctrl_t1 <= freq_ctrl_t1;
+								16'd30: 	freq_ctrl_t1 <= 16'd15000;
+								16'd15000:	freq_ctrl_t1 <= 16'd30000;
+								16'd30000:	freq_ctrl_t1 <= 16'd45000;
+								16'd45000:	freq_ctrl_t1 <= freq_ctrl_t1;
 								default: freq_ctrl_t1 <= 30;
 							endcase
 			        	else
@@ -147,6 +144,7 @@ always @(posedge clk_50m or negedge rst_n)
 			default:begin
 					flag <= 0;
 			        freq_ctrl_t1 <= 16'd1;
+					freq_ctrl_t0 <= freq_ctrl_t0;
 			        end
 		endcase
 endmodule
