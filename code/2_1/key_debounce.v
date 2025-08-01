@@ -27,7 +27,7 @@ module key_debounce(
     output reg [2:0] key_value
     );
     
-parameter waittime = 1_0;
+parameter waittime = 1_000_000;
 
 reg [19:0] cnt;
 reg flag;

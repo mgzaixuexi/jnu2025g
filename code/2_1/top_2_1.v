@@ -47,8 +47,11 @@ wire clk_40_96m;
 wire clk_1_6384m;
 wire clk_8_192m;	
 wire clk_8_192m_90deg;
+wire clk_65_536m;
+wire clk_6_5536m;
 wire locked1;
 wire locked2;
+wire locked3;
 wire rst_n;
 wire fft_valid;
 wire [2:0] key_value;
@@ -57,7 +60,7 @@ wire next_freq;
 wire [15:0] freq;
 wire [9:0] da_data_t;
 
-assign rst_n = sys_rst_n & locked1 & locked2;
+assign rst_n = sys_rst_n & locked1 & locked2 & locked3;
 assign da_clk = clk_40_96m;
 assign ad_clk = clk_1_6384m;
 assign da_data = da_data_t + 512;
@@ -85,6 +88,16 @@ clk_wiz_1 u_clk_wiz_1
    // Clock in ports
     .clk_in1(clk_32m));      // input clk_in1
 	
+  clk_wiz_2 u_clk_wiz_2
+   (
+    // Clock out ports
+    .clk_out1(clk_65_536m),     // output clk_out1
+    // Status and control signals
+    .reset(~sys_rst_n), // input reset
+    .locked(locked3),       // output locked
+   // Clock in ports
+    .clk_in1(clk_32m));      // input clk_in1
+	
 // °´¼ü·À¶¶Ä£¿é
 key_debounce u_key_debounce(
     .clk(clk_50m),
@@ -94,6 +107,7 @@ key_debounce u_key_debounce(
 ); 
 
 freq_ctrl u_freq_ctrl(
+	.clk_6_5536m(clk_6_5536m),
 	.clk_40_96m(clk_40_96m),
 	.clk_50m(clk_50m),
     .rst_n (rst_n),
@@ -107,8 +121,10 @@ freq_ctrl u_freq_ctrl(
 clk_div u_clk_div(
 	.clk_8_192m			(clk_8_192m),
     .clk_8_192m_90deg   (clk_8_192m_90deg),
+	.clk_65_536m		(clk_65_536m),
     .rst_n              (rst_n),
-    .clk_1_6384m        (clk_1_6384m)
+    .clk_1_6384m        (clk_1_6384m),
+	.clk_6_5536m		(clk_6_5536m)
 );
 
 wire fft_axis_config_tready;
@@ -198,7 +214,7 @@ learn_ctrl u_learn_ctrl(
     .fft_real	    (fft_m_data_tdata[15:0]),
     .fft_imag	    (fft_m_data_tdata[31:16]),
     .source_valid   (fft_m_data_tvalid),
-    .freq		    (freq>>1),
+    .freq		    (freq),
     //.fft_index	    (fft_index),
     .blk_exp		(blk_exp),
     .learn_en	    (learn_en),

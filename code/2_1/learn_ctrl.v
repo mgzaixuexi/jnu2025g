@@ -335,6 +335,13 @@ always @(posedge clk_1_6384m or negedge rst_n)
 			rise_index		<= rise_index	   ;
 			down_index		<= down_index	   ;
 			end
+	else if(start)begin
+		modulus_data_t	<= 0;
+		rising_edge		<= 0;
+		downing_edge	<= 0;
+		rise_index		<= 0;
+		down_index		<= 0;
+		end
 	else begin
 		modulus_data_t	<= modulus_data_t  ;
 	    rising_edge		<= rising_edge	   ;
@@ -353,9 +360,9 @@ always @(posedge clk_1_6384m or negedge rst_n)
 				filter_type <= 3'd4;
 			else 
 				filter_type <= 3'd3;
-		else if(downing_edge)
-			filter_type <= 3'd2;
 		else if(rising_edge)
+			filter_type <= 3'd2;
+		else if(downing_edge)
 			filter_type <= 3'd1;
 		else 
 			filter_type <= 3'd6;
