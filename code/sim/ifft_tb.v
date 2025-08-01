@@ -10,21 +10,25 @@ reg fft_clk;        // FFT时钟，163840Hz，
 
 // AD接口
 reg [9:0] ad_data;  // ADC数据输入(10位)
-reg ram_add_real;        
-reg ram_add_img;      
+reg [15:0] ram_add_real;        
+reg [15:0] ram_add_img;      
+reg ifft_start;
 
 // 输出信号
 wire [9:0] da_data; // DAC数据输出(10位)
+wire fft_m_data_tvalid;
 
 // 实例化被测模块
 ifft u_ifft (
-    .sys_clk(sys_clk),
+    .calcu_clk(sys_clk),
     .sys_rst_n(sys_rst_n),
     .key(key),
     .fft_clk(fft_clk),
     .ad_data(ad_data),
-    .ram_add_real(16'd100),
-    .ram_add_img(16'd200),
+    .ram_add_real(ram_add_real),
+    .ram_add_img(ram_add_img),
+    .ifft_start(ifft_start),
+    .fft_m_data_tvalid(fft_m_data_tvalid),
     .da_data(da_data)
 );
 
@@ -50,9 +54,10 @@ initial begin
     // 初始化
     sys_rst_n = 0;
     key = 0;
-    ram_add_real = 0;
+    ram_add_real = 1;
     ram_add_img = 0;
     ad_data = 0;
+    ifft_start = 1;
 
     // 复位
     #100;
