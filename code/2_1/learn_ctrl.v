@@ -25,21 +25,20 @@ module learn_ctrl(
 	input						clk_1_6384m	,
 	input						rst_n   	,
 	input						key         ,
-	input 		signed	[23:0]	fft_real	,
-	input 		signed	[23:0]	fft_imag	,
+	input 		signed	[15:0]	fft_real	,
+	input 		signed	[15:0]	fft_imag	,
 	input 						source_valid,
 	input				[15:0]	freq		,
-	input						fft_tready	,
+	input				[15:0]	fft_index	,
+	input				[7:0]	blk_exp		,	//缩小倍数，2^blk_exp
 	output	reg					learn_en	,
 	output	reg					next_freq	,
 	output	reg					fft_valid	,
 	output	reg					wr_en		,
-	output	reg	signed	[23:0]	wr_real		,
-	output	reg signed	[23:0]	wr_imag		,
+	output	reg	signed	[15:0]	wr_real		,
+	output	reg signed	[15:0]	wr_imag		,
 	output	reg 		[11:0]	wr_addr		,
-	output				[23:0]	data_modulus,
-	output 				[11:0]	modulus_addr,
-	output	reg					modulus_wren,
+	output 	reg			[2:0]	filter_type	,
 	output	reg					learn_done		//有上升沿说明学习完毕（实部虚部写入完毕）
     );
 	
@@ -50,13 +49,15 @@ localparam	write	=	4'b1000;
 
 parameter index_max 	= 2751;	
 parameter delay_value	= 50_000 * 3 - 3;
+parameter blk_exp_norm	= 8;
+parameter compare_num	= 500;
 	
-reg [12:0] 	fft_index;
 reg [3:0]	state;
 reg	[3:0]	next_state;
 reg	[4:0]	flag;
+reg [3:0]	move_point;
 reg	[17:0]	delay_cnt;
-reg signed [47:0] source_data;
+reg signed [31:0] source_data;
 
 reg key_d0;
 reg key_d1;
@@ -65,9 +66,10 @@ reg modulus_valid_d1;
 
 wire start;
 wire modulus_valid;
+wire [11:0] modulus_index;
 
 assign start = key_d0 & ~key_d1;
-assign modulus_addr = wr_addr - 1'b1;
+assign modulus_index = wr_addr - 1'b1;
 
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)
@@ -79,17 +81,17 @@ always @(posedge clk_50m or negedge rst_n)
 			delay_cnt <= delay_cnt + 1'b1;
 	else 
 		delay_cnt <= 0;
-
-always @(posedge clk_1_6384m or negedge rst_n)
+	
+always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)
-		fft_index <= 0;
+		move_point <= 0;
 	else if(source_valid)
-		if(fft_index >= index_max + 3)
-			fft_index <= fft_index;
+		if(blk_exp == blk_exp_norm)
+			move_point <= 0;
 		else 
-			fft_index <= fft_index + 1'b1;
+			move_point <= blk_exp_norm - blk_exp ;
 	else 
-		fft_index <= 0;
+		move_point <= move_point;
 		
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)begin
@@ -188,8 +190,8 @@ always @(posedge clk_1_6384m or negedge  rst_n)
 					next_freq <= 0;
 					if(fft_index  == freq)begin
 						wr_en <= 1;
-						wr_real <= fft_real;
-						wr_imag <= fft_imag;
+						wr_real <= (fft_real >>> move_point);
+						wr_imag <= (fft_imag >>> move_point);
 						flag <= {flag[3:0],flag[4]};
 						end
 					else begin
@@ -231,19 +233,84 @@ always @(posedge clk_1_6384m or negedge rst_n)
 cordic_0 u_cordic_0 (
   .aclk(clk_1_6384m),                                        // input wire aclk
   .s_axis_cartesian_tvalid(flag[3]),  // input wire s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata(source_data),    // input wire [47 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tdata(source_data),    // input wire [31 : 0] s_axis_cartesian_tdata
   .m_axis_dout_tvalid(modulus_valid),            // output wire m_axis_dout_tvalid
-  .m_axis_dout_tdata(data_modulus)              // output wire [31 : 0] m_axis_dout_tdata
+  .m_axis_dout_tdata(data_modulus)              // output wire [23 : 0] m_axis_dout_tdata
 );
 
-always @(posedge clk_50m or negedge rst_n)
-	if(~rst_n)
-		modulus_wren <= 0;
-	else if(~modulus_valid_d1 & modulus_valid_d0)
-		modulus_wren <= 1;
-	else if(~modulus_valid_d0 & modulus_valid_d1)
-		modulus_wren <= 0;
-	else 
-		modulus_wren <= modulus_wren;
+
+reg [15:0] 	modulus_data_t;
+reg 		rising_edge	;
+reg 		downing_edge;
+reg	[11:0]	rise_index	;
+reg	[11:0]	down_index	;
 		
+always @(posedge clk_50m or negedge rst_n)
+	if(~rst_n)begin
+		modulus_data_t	<= 0;
+		rising_edge		<= 0;
+		downing_edge	<= 0;
+		rise_index		<= 0;
+		down_index		<= 0;
+		end
+	else if(~modulus_valid_d1 & modulus_valid_d0)
+		if(~modulus_index)begin
+			modulus_data_t <= data_modulus;
+			end
+		else if(data_modulus > modulus_data_t)
+			if((data_modulus - modulus_data_t) >= compare_num)begin
+				rising_edge <= 1;
+				modulus_data_t <= data_modulus;
+				rise_index <= modulus_index;
+				end
+			else begin	
+				rising_edge <= rising_edge;
+			    modulus_data_t <= modulus_data_t;
+			    rise_index <= rise_index;
+				end
+		else if(data_modulus < modulus_data_t)
+			if((modulus_data_t - data_modulus) >= compare_num)begin
+				downing_edge <= 1;	
+				modulus_data_t <= data_modulus;
+				down_index <= modulus_index;
+				end
+			else begin
+				downing_edge <= downing_edge;
+				modulus_data_t <= modulus_data_t;
+				down_index <= down_index;
+				end
+		else begin
+			modulus_data_t	<= modulus_data_t  ;
+			rising_edge		<= rising_edge	   ;
+			downing_edge	<= downing_edge    ;
+			rise_index		<= rise_index	   ;
+			down_index		<= down_index	   ;
+			end
+	else begin
+		modulus_data_t	<= modulus_data_t  ;
+	    rising_edge		<= rising_edge	   ;
+	    downing_edge	<= downing_edge    ;
+	    filter_type 	<= filter_type     ;
+	    rise_index		<= rise_index	   ;
+	    down_index		<= down_index	   ;
+	    end
+		
+always @(posedge clk_50m or negedge rst_n)
+	if(~rst_n)	
+		filter_type <= 0;
+	else if((~modulus_valid_d0 & modulus_valid_d1) && (state == idle))
+		if(rising_edge & downing_edge)
+			if(rise_index > downing_edge)
+				filter_type <= 3'd4;
+			else 
+				filter_type <= 3'd3;
+		else if(downing_edge)
+			filter_type <= 3'd2;
+		else if(rising_edge)
+			filter_type <= 3'd1;
+		else 
+			filter_type <= 0;
+	else 
+		filter_type <= filter_type;
+			
 endmodule

@@ -107,11 +107,24 @@ always @(posedge clk_50m or negedge rst_n)
 					if(~key[0])
 			        	if(freq_ctrl_t1 == 1)
 			        		freq_ctrl_t1 <= 30;
-			        	else
+			        	else if(freq_ctrl_t1 > 30)
+							case(freq_ctrl_t1)
+								16'd1500:	freq_ctrl_t1 <= 16'd30;
+								16'd3000:	freq_ctrl_t1 <= 16'd1500;
+						    	16'd4500:	freq_ctrl_t1 <= 16'd3000;
+						    	default: freq_ctrl_t1 <= 16'd4500;
+						    endcase
+						else 
 			        		freq_ctrl_t1 <= freq_ctrl_t1 - 1'd1;
 			        else if(~key[1])
-			        	if(freq_ctrl_t1 == 30)
-			        		freq_ctrl_t1 <= 1;
+			        	if(freq_ctrl_t1 >= 30)
+							case(freq_ctrl_t1)
+								16'd30: 	freq_ctrl_t1 <= 16'd1500;
+								16'd1500:	freq_ctrl_t1 <= 16'd3000;
+								16'd3000:	freq_ctrl_t1 <= 16'd4500;
+								16'd4500:	freq_ctrl_t1 <= freq_ctrl_t1;
+								default: freq_ctrl_t1 <= 30;
+							endcase
 			        	else
 			        		freq_ctrl_t1 <= freq_ctrl_t1 + 1'd1;
 			        else 

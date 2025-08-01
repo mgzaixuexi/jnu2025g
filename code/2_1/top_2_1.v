@@ -32,11 +32,11 @@ module top(
 	
 	// DA接口
 	output         da_clk,        // DAC驱动时钟
-	output [9:0]   da_data       // DAC数据输出(10位)
+	output [9:0]   da_data,       // DAC数据输出(10位)
 	
 	// 数码管接口
-	//output [4:0]   seg_sel,       // 数码管位选
-	//output [7:0]   seg_led        // 数码管段选
+	output [4:0]   seg_sel,       // 数码管位选
+	output [7:0]   seg_led        // 数码管段选
     );
 	
 wire clk_32m;
@@ -112,29 +112,34 @@ clk_div u_clk_div(
 wire fft_axis_config_tready;
 wire fft_axis_data_tready;
 wire fft_axis_data_tlast;
-wire [63:0] fft_m_data_tdata;
+wire [31:0] fft_m_data_tdata;
 wire fft_m_data_tvalid;
+wire [23:0] fft_axis_data_tuser;
+wire [7:0] blk_exp;	
+wire [15:0] fft_index;
 
+assign blk_exp = fft_axis_data_tuser[23:16];
+assign fft_index = fft_axis_data_tuser[15:0];
 
-/* xfft_0 u_xfft_0 (
+xfft_0 u_xfft_0 (
   .aclk(clk_1_6384m),                                                // input wire aclk
   .aresetn(fft_valid & rst_n),                                          // input wire aresetn
   .s_axis_config_tdata(8'd1),                  // input wire [7 : 0] s_axis_config_tdata
   .s_axis_config_tvalid(1'b1),                // input wire s_axis_config_tvalid
   .s_axis_config_tready(fft_axis_config_tready),                // output wire s_axis_config_tready
   
-  .s_axis_data_tdata({22'b0,ad_data}),                      // input wire [31 : 0] s_axis_data_tdata
+  .s_axis_data_tdata({22'b0,ad_data[9:0]}),                      // input wire [31 : 0] s_axis_data_tdata
   .s_axis_data_tvalid(1'b1),                    // input wire s_axis_data_tvalid
   .s_axis_data_tready(fft_axis_data_tready),                    // output wire s_axis_data_tready
   .s_axis_data_tlast(fft_axis_data_tlast),                      // input wire s_axis_data_tlast
   
   .m_axis_data_tdata(fft_m_data_tdata),                      // output wire [31 : 0] m_axis_data_tdata
-  .m_axis_data_tuser(m_axis_data_tuser),                      // output wire [23 : 0] m_axis_data_tuser
+  .m_axis_data_tuser(fft_axis_data_tuser),                      // output wire [23 : 0] m_axis_data_tuser
   .m_axis_data_tvalid(fft_m_data_tvalid),                    // output wire m_axis_data_tvalid
   .m_axis_data_tready(1'b1),                    // input wire m_axis_data_tready
   .m_axis_data_tlast(),                      // output wire m_axis_data_tlast
   
-  .m_axis_status_tdata(m_axis_status_tdata),                  // output wire [7 : 0] m_axis_status_tdata
+  .m_axis_status_tdata(),                  // output wire [7 : 0] m_axis_status_tdata
   .m_axis_status_tvalid(),                // output wire m_axis_status_tvalid
   .m_axis_status_tready(1'b0),                // input wire m_axis_status_tready
   
@@ -144,9 +149,9 @@ wire fft_m_data_tvalid;
   .event_status_channel_halt(),      // output wire event_status_channel_halt
   .event_data_in_channel_halt(),    // output wire event_data_in_channel_halt
   .event_data_out_channel_halt()  // output wire event_data_out_channel_halt
-); */
+);
 
-xfft_0 u_xfft_0 (
+/* xfft_0 u_xfft_0 (
   .aclk(clk_1_6384m),                                                // input wire aclk
   .aresetn(fft_valid & rst_n),                                          // input wire aresetn
   .s_axis_config_tdata(8'd1),                  // input wire [7 : 0] s_axis_config_tdata
@@ -170,31 +175,30 @@ xfft_0 u_xfft_0 (
   .event_status_channel_halt(),      // output wire event_status_channel_halt
   .event_data_in_channel_halt(),    // output wire event_data_in_channel_halt
   .event_data_out_channel_halt()  // output wire event_data_out_channel_halt
-);
+); */
 
 wire 		wr_en		   	;
-wire [23:0]	wr_real	   		;
-wire [23:0]	wr_imag	   		;
+wire [15:0]	wr_real	   		;
+wire [15:0]	wr_imag	   		;
 wire [11:0]	wr_addr	   		;
+wire [2:0]	filter_type		;
 wire 		learn_done    	; 
-wire [23:0]	rd_real	   		;
-wire [23:0]	rd_imag	   		;
+wire [15:0]	rd_real	   		;
+wire [15:0]	rd_imag	   		;
 wire [11:0]	real_addr	   	;
 wire [11:0]	imag_addr	   	;
-wire [23:0]	data_modulus    ;
-wire [11:0]	modulus_addr    ;
-wire 		modulus_wren    ;
 
 learn_ctrl u_learn_ctrl(
 	.clk_50m		(clk_50m),
-    .clk_1_6384m	(clk_1_6384m),
+	.clk_1_6384m	(clk_1_6384m),
     .rst_n   	    (rst_n),
-    .key            (key_value[2]),
-    .fft_real	    (fft_m_data_tdata[23:0]),
-    .fft_imag	    (fft_m_data_tdata[55:32]),
+    .key            (key_value),
+    .fft_real	    (fft_m_data_tdata[15:0]),
+    .fft_imag	    (fft_m_data_tdata[31:16]),
     .source_valid   (fft_m_data_tvalid),
     .freq		    (freq>>1),
-    .fft_tready	    (fft_axis_data_tready),
+    .fft_index	    (fft_index),
+    .blk_exp		(blk_exp),
     .learn_en	    (learn_en),
     .next_freq	    (next_freq),
     .fft_valid	    (fft_valid),
@@ -202,9 +206,7 @@ learn_ctrl u_learn_ctrl(
     .wr_real		(wr_real),
     .wr_imag		(wr_imag),
     .wr_addr		(wr_addr),
-	.data_modulus	(data_modulus),
-	.modulus_addr   (modulus_addr),
-	.modulus_wren   (modulus_wren),
+    .filter_type	(filter_type),
     .learn_done	    (learn_done)
 );
 
@@ -228,5 +230,15 @@ ram_2800x16 ram_imag (
   .doutb(rd_imag)  // output wire [15 : 0] doutb
 ); */
 
+// 数码管显示模块
+seg_led u_seg_led(
+    .sys_clk(clk_50m),
+    .sys_rst_n(rst_n),
+	.num1(filter_type),
+	.num2(freq),
+	.learn_done(learn_done),
+    .seg_sel(seg_sel),
+    .seg_led(seg_led)
+);
 
 endmodule
