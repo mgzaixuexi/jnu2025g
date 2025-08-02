@@ -21,24 +21,24 @@
 
 
 module top(
-	input          sys_clk,        // ÏµÍ³Ê±ÖÓ
-	input          sys_rst_n,      // ÏµÍ³¸´Î»
-	input  [2:0]   key,           // °´¼üÊäÈë [0:Æô¶¯, 1:Ä£Ê½Ñ¡Ôñ, 2:±£Áô]
+	input          sys_clk,        // ÏµÍ³Ê±ï¿½ï¿½
+	input          sys_rst_n,      // ÏµÍ³ï¿½ï¿½Î»
+	input  [2:0]   key,           // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ [0:ï¿½ï¿½ï¿½ï¿½, 1:Ä£Ê½Ñ¡ï¿½ï¿½, 2:ï¿½ï¿½ï¿½ï¿½]
 	
-	// ADC½Ó¿Ú
-	input  [9:0]   ad_data,       // ADCÊı¾İÊäÈë(10Î»)
-	input          ad_otr,        // ADCÊäÈëµçÑ¹³¬¹ıÁ¿³Ì±êÖ¾
+	// ADCï¿½Ó¿ï¿½
+	input  [9:0]   ad_data,       // ADCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(10Î»)
+	input          ad_otr,        // ADCï¿½ï¿½ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì±ï¿½Ö¾
 	output		   ad_clk,
 	
 	output reg [3:0]   led,
 	
-	// DA½Ó¿Ú
-	output         da_clk,        // DACÇı¶¯Ê±ÖÓ
-	output [9:0]   da_data,       // DACÊı¾İÊä³ö(10Î»)
+	// DAï¿½Ó¿ï¿½
+	output         da_clk,        // DACï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+	output [9:0]   da_data,       // DACï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(10Î»)
 	
-	// ÊıÂë¹Ü½Ó¿Ú
-	output [4:0]   seg_sel,       // ÊıÂë¹ÜÎ»Ñ¡
-	output [7:0]   seg_led        // ÊıÂë¹Ü¶ÎÑ¡
+	// ï¿½ï¿½ï¿½ï¿½Ü½Ó¿ï¿½
+	output [4:0]   seg_sel,       // ï¿½ï¿½ï¿½ï¿½ï¿½Î»Ñ¡
+	output [7:0]   seg_led        // ï¿½ï¿½ï¿½ï¿½Ü¶ï¿½Ñ¡
     );
 	
 wire clk_32m;
@@ -98,7 +98,7 @@ clk_wiz_1 u_clk_wiz_1
    // Clock in ports
     .clk_in1(clk_32m));      // input clk_in1
 	
-// °´¼ü·À¶¶Ä£¿é
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½
 key_debounce u_key_debounce(
     .clk(clk_50m),
     .rst_n(rst_n),
@@ -113,7 +113,7 @@ freq_ctrl_2 u_freq_ctrl_2(
 	.learn_en(learn_en),
 	.next_freq(next_freq),
     .da_data(da_data_t),
-	.freq_ctrl_t1(freq)			//Êä³öÕıÏÒ²¨ÆµÂÊ£¬freq*200
+	.freq_ctrl_t1(freq)			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò²ï¿½Æµï¿½Ê£ï¿½freq*200
     );
 
 clk_div u_clk_div(
@@ -208,7 +208,8 @@ ram_2800x16 ram_real (
   .dina(wr_real),    // input wire [15 : 0] dina
   .clkb(clk_50m),    // input wire clkb
   .addrb(real_addr),  // input wire [11 : 0] addrb
-  .doutb(rd_real)  // output wire [15 : 0] doutb
+  .doutb(rd_real),  // output wire [15 : 0] doutb
+  .enb(ram_rd_valid)
 );
 
 ram_2800x16 ram_imag (
@@ -218,10 +219,11 @@ ram_2800x16 ram_imag (
   .dina(wr_imag),    // input wire [15 : 0] dina
   .clkb(clk_50m),    // input wire clkb
   .addrb(imag_addr),  // input wire [11 : 0] addrb
-  .doutb(rd_imag)  // output wire [15 : 0] doutb
+  .doutb(rd_imag),  // output wire [15 : 0] doutb
+  .enb(ram_rd_valid)
 );
 
-// ÊıÂë¹ÜÏÔÊ¾Ä£¿é
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾Ä£ï¿½ï¿½
 seg_led u_seg_led(
     .sys_clk(clk_50m),
     .sys_rst_n(rst_n),
@@ -231,6 +233,20 @@ seg_led u_seg_led(
     .seg_sel(seg_sel),
     .seg_led(seg_led)
 );
+wire ram_rd_valid;
+ifft u_ifft(
+    .calcu_clk(clk_50m),     
+    .sys_rst_n(rst_n),   
+    .fft_clk(clk_50m),           //è·Ÿè¯»åœ°å€çš„æ—¶é’Ÿä¸€æ ·ã€‚  
+    .ad_data(ad_data),   
+    .ram_add_real(rd_real),        
+    .ram_add_img(rd_imag),      
+    .ifft_start(learn_done),
+    .fft_m_data_tvalid(ram_rd_valid),//æ§åˆ¶å¼€å§‹è¯»åœ°å€ã€‚
+    .da_data(da_data)    
+
+);
+
 
 always @(posedge clk_50m or negedge rst_n)
 	if(~rst_n)

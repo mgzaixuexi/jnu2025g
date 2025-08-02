@@ -38,6 +38,24 @@ wire [20:0] m_axis_data_tuser;
 wire [12:0] fft_index;
 assign fft_index = m_axis_data_tuser[12:0];
 
+reg ifft_start_prev;  // 用于检测上升沿的寄存器
+reg fft_start;        // FFT启动信号
+// 检测ifft_start的上升沿并生成fft_start信号
+always @(posedge fft_clk or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+        ifft_start_prev <= 1'b0;
+        fft_start <= 1'b0;
+    end else begin
+        ifft_start_prev <= ifft_start;  // 存储前一个时钟周期的ifft_start值
+        
+        // 检测上升沿：当前为高电平且前一个时钟周期为低电平
+        if (ifft_start && !ifft_start_prev) begin
+            fft_start <= 1'b1;          // 在上升沿时启动FFT
+        end else begin
+            fft_start <= fft_start;          // 保持低电平
+        end
+    end
+end
 xfft_0 D2_xfft (
   .aclk(fft_clk),                      
   .aresetn(sys_rst_n), 
@@ -46,7 +64,7 @@ xfft_0 D2_xfft (
   .s_axis_config_tready(fft_s_config_tready),  
                 
   .s_axis_data_tdata   ({22'b0, ad_data}),                        
-  .s_axis_data_tvalid  (ifft_start), //需要设置按键。              
+  .s_axis_data_tvalid  (fft_start), //需要设置按键。              
   .s_axis_data_tready  (fft_s_data_tready),                 
   .s_axis_data_tlast   (s_axis_data_tlast),                
 
