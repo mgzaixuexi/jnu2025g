@@ -10,7 +10,7 @@ module ifft(
     input [15:0]      ram_add_img,      
     input         ifft_start,//置高之后，开始对输入信号进行fft，然后与ram数据点乘，然后ifft
     output        ram_rd_valid,//置高之后开始进行与ram数据点乘，然后ifft输出结果。
-    output  [12:0] fft_index,//第6位，值为5~2750
+    output  [12:0] fft_index1,//第6位，值为5~2750
     output [11 : 0] real_addr,
     output [11 : 0] imag_addr,
     output  [9:0]  da_data       // DAC数据输出(10位)
@@ -37,7 +37,7 @@ reg        fft_s_config_tvalid;
 wire       fft_s_config_tready;
 wire  event_frame_started, event_tlast_unexpected , event_tlast_missing, event_data_in_channel_halt;
 wire  event_status_channel_halt, event_data_out_channel_halt;
-wire [20:0] m_axis_data_tuser;
+wire [23:0] m_axis_data_tuser;
 assign fft_index = m_axis_data_tuser[12:0];
 
 //assign ram_rd_valid = (fft_m_data_tvalid && (fft_index >= 4) && (fft_index < 2750)) ? ram_add_real : 16'b0;
