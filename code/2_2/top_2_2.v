@@ -52,6 +52,7 @@ wire clk_6_5536m;
 wire locked1;
 wire locked2;
 wire locked3;
+wire locked4;
 wire rst_n;
 wire fft_valid;
 wire [2:0] key_value;
@@ -60,7 +61,7 @@ wire next_freq;
 wire [15:0] freq;
 wire [9:0] da_data_t;
 
-assign rst_n = sys_rst_n & locked1 & locked2 & locked3;
+assign rst_n = sys_rst_n & locked1 & locked2 & locked3 & locked4;
 assign da_clk = clk_40_96m;
 assign ad_clk = clk_1_6384m;
 assign da_data = da_data_t + 512;
@@ -97,7 +98,17 @@ clk_wiz_1 u_clk_wiz_1
     .locked(locked3),       // output locked
    // Clock in ports
     .clk_in1(clk_32m));      // input clk_in1
-	
+
+  clk_wiz_3 u_clk_wiz_3
+   (
+    // Clock out ports
+    .clk_out1(clk_500m),     // output clk_out1，calculate 时钟
+    // Status and control signals
+    .reset(~sys_rst_n), // input reset
+    .locked(locked4),       // output locked
+   // Clock in ports
+    .clk_in1(clk_32m));      // input clk_in1
+
 // ��������ģ��
 key_debounce u_key_debounce(
     .clk(clk_50m),
@@ -206,7 +217,7 @@ ram_2800x16 ram_real (
   .wea(wr_en),      // input wire [0 : 0] wea
   .addra(wr_addr),  // input wire [11 : 0] addra
   .dina(wr_real),    // input wire [15 : 0] dina
-  .clkb(clk_50m),    // input wire clkb
+  .clkb(clk_1_6384m),    // input wire clkb
   .addrb(real_addr),  // input wire [11 : 0] addrb
   .doutb(rd_real),  // output wire [15 : 0] doutb
   .enb(ram_rd_valid)
@@ -217,11 +228,11 @@ ram_2800x16 ram_imag (
   .wea(wr_en),      // input wire [0 : 0] wea
   .addra(wr_addr),  // input wire [11 : 0] addra
   .dina(wr_imag),    // input wire [15 : 0] dina
-  .clkb(clk_50m),    // input wire clkb
+  .clkb(clk_1_6384m),    // input wire clkb
   .addrb(imag_addr),  // input wire [11 : 0] addrb
   .doutb(rd_imag),  // output wire [15 : 0] doutb
   .enb(ram_rd_valid)
-);
+);//有ram_rd_valid指导读出，现在只需要让ram读完之后地址回到第一位/第0位。
 
 // �������ʾģ��
 seg_led u_seg_led(
@@ -234,15 +245,19 @@ seg_led u_seg_led(
     .seg_led(seg_led)
 );
 wire ram_rd_valid;
+//wire [12:0] fft_index;
 ifft u_ifft(
-    .calcu_clk(clk_50m),     
+    .calcu_clk(clk_500m),     //希望能比fft时钟快五倍，这样可以保证计算结果不会落后于fft计算。
     .sys_rst_n(rst_n),   
-    .fft_clk(clk_50m),           //跟读地址的时钟一样。  
+    .fft_clk(clk_1_6384m),           //以防万一保证fft_clk一样。也跟读地址的时钟一样。  
     .ad_data(ad_data),   
     .ram_add_real(rd_real),        
     .ram_add_img(rd_imag),      
     .ifft_start(learn_done),
-    .fft_m_data_tvalid(ram_rd_valid),//控制开始读地址。
+    .ram_rd_valid(ram_rd_valid),//控制开始读地址。
+    //.fft_index(fft_index),
+    .real_addr(real_addr),
+    .imag_addr(imag_addr),
     .da_data(da_data)    
 
 );

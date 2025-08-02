@@ -9,7 +9,10 @@ module ifft(
     input [15:0]      ram_add_real,        
     input [15:0]      ram_add_img,      
     input         ifft_start,//置高之后，开始对输入信号进行fft，然后与ram数据点乘，然后ifft
-    output        fft_m_data_tvalid,//置高之后开始进行与ram数据点乘，然后ifft输出结果。
+    output        ram_rd_valid,//置高之后开始进行与ram数据点乘，然后ifft输出结果。
+    output  [12:0] fft_index,//第6位，值为5~2750
+    output [11 : 0] real_addr,
+    output [11 : 0] imag_addr,
     output  [9:0]  da_data       // DAC数据输出(10位)
 
 );
@@ -35,8 +38,38 @@ wire       fft_s_config_tready;
 wire  event_frame_started, event_tlast_unexpected , event_tlast_missing, event_data_in_channel_halt;
 wire  event_status_channel_halt, event_data_out_channel_halt;
 wire [20:0] m_axis_data_tuser;
-wire [12:0] fft_index;
 assign fft_index = m_axis_data_tuser[12:0];
+
+//assign ram_rd_valid = (fft_m_data_tvalid && (fft_index >= 4) && (fft_index < 2750)) ? ram_add_real : 16'b0;
+//fft_index = 4的时候ram_rd_valid为1，这样下个周期index为5的时候，就有有效值进行乘除运算。< 2750同理，
+//我有点担心时序上有一些问题，改进到always里面。
+reg ram_rd_valid_reg;  // 寄存器输出，确保时序稳定
+reg [11:0] real_addr_reg, imag_addr_reg;  // RAM地址寄存器
+
+always @(posedge fft_clk or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+        ram_rd_valid_reg <= 1'b0;
+        real_addr_reg <= 12'b0;
+        imag_addr_reg <= 12'b0;
+    end else begin
+        // 在 fft_index=4~2749 时预判下一个周期（index=5~2750）的需求
+        if (fft_m_data_tvalid && (fft_index >= 4) && (fft_index < 2750)) begin
+            ram_rd_valid_reg <= 1'b1;          // 提前一个周期拉高
+            real_addr_reg <= fft_index - 4;    // 地址对齐（假设从0开始）
+            imag_addr_reg <= fft_index - 4;
+        end else begin
+            ram_rd_valid_reg <= 1'b0;          // 其他情况保持无效
+            real_addr_reg <= 12'b0;
+            imag_addr_reg <= 12'b0;
+        end
+    end
+end
+
+// 输出赋值
+assign ram_rd_valid = ram_rd_valid_reg;
+assign real_addr = real_addr_reg;
+assign imag_addr = imag_addr_reg;
+//要不直接assign addr？感觉可以。
 
 reg ifft_start_prev;  // 用于检测上升沿的寄存器
 reg fft_start;        // FFT启动信号
@@ -108,12 +141,18 @@ wire [79 : 0] m_axis_dout_tdata;
 wire [32:0] ft_img,ft_real;
 assign ft_img = m_axis_dout_tdata[72:40];
 assign ft_real = m_axis_dout_tdata[32:0];
+// 仅在 fft_index=5~2750 时传递 ram_add_img/real，否则赋值为0
+wire index_valid;
+assign index_valid = (fft_m_data_tvalid && (fft_index >= 5) && (fft_index <= 2750)) ? ram_add_img : 16'b0;
+wire [32:0] s_axis_b_tdata;
+assign s_axis_b_tdata = index_valid?{ram_add_img,ram_add_real} : 32'b0;
+
 cmpy_0 u_cmpy_0 (
   .aclk(calcu_clk),                              // input wire aclk
   .s_axis_a_tvalid(1'b1),        // input wire s_axis_a_tvalid
   .s_axis_a_tdata({fft_img,fft_real}),          // input wire [31 : 0] s_axis_a_tdata
   .s_axis_b_tvalid(1'b1),        // input wire s_axis_b_tvalid
-  .s_axis_b_tdata({ram_add_img,ram_add_real}),          // input wire [31 : 0] s_axis_b_tdata
+  .s_axis_b_tdata(s_axis_b_tdata),          // input wire [31 : 0] s_axis_b_tdata
   .m_axis_dout_tvalid(m_axis_dout_tvalid),  // output wire m_axis_dout_tvalid
   .m_axis_dout_tdata(m_axis_dout_tdata)    // output wire [79 : 0] m_axis_dout_tdata
 );

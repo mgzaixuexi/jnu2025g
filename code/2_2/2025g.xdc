@@ -1,9 +1,9 @@
 #####set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets D0_clk_50m_xout/inst/clk_in1_clk_50MHz_Xout] 
-# ÔÚ.xdcÎÄ¼şÖĞÌí¼ÓÒÔÏÂÔ¼Êø
+# åœ¨.xdcæ–‡ä»¶ä¸­æ·»åŠ ä»¥ä¸‹çº¦æŸ
 
-# ÔÚ XDC Ô¼ÊøÎÄ¼şÖĞĞŞ¸ÄÎª 3.3V ±ê×¼
+# åœ¨ XDC çº¦æŸæ–‡ä»¶ä¸­ä¿®æ”¹ä¸º 3.3V æ ‡å‡†
 set_property IOSTANDARD LVCMOS33 [get_ports sys_clk]
-# Ê±ÖÓ¶¨Òå£¨¸ù¾İÊµ¼ÊÆµÂÊµ÷Õû£©
+# æ—¶é’Ÿå®šä¹‰ï¼ˆæ ¹æ®å®é™…é¢‘ç‡è°ƒæ•´ï¼‰
 create_clock -period 20.000 -name sys_clk [get_ports sys_clk]
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_clk_wiz_0/inst/clk_in1_clk_wiz_0]
 
